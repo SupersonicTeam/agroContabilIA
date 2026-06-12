@@ -78,17 +78,21 @@ def chamar(endpoint: str, params: dict, nome_arquivo: str) -> dict | list | None
 
 
 def main() -> None:
-    # 1) Tentativa de listagem de notas fiscais por período.
-    #    Padrão observado em outros endpoints da mesma API (ex: licitacoes):
-    #    dataInicial/dataFinal no formato DD/MM/AAAA + paginação. Para
-    #    notas-fiscais o nome do parâmetro de data pode ser diferente -
-    #    se der erro 4xx, o corpo da resposta normalmente diz qual
-    #    parâmetro é esperado.
+    # 1) Listagem de notas fiscais.
+    #    IMPORTANTE: ao contrário de outros endpoints da API, o
+    #    `notas-fiscais` NÃO aceita filtro por data. Segundo o OpenAPI
+    #    oficial, os únicos parâmetros são: cnpjEmitente, codigoOrgao,
+    #    nomeProduto e pagina (esta última obrigatória). A API exige
+    #    PELO MENOS UM filtro entre cnpjEmitente / codigoOrgao /
+    #    nomeProduto - sem isso retorna 400 ("Filtros mínimos: ...").
+    #
+    #    Usamos codigoOrgao (código SIAFI) como filtro de descoberta.
+    #    Ex.: 26298 = Universidade Federal (ajuste para o órgão de
+    #    interesse). Veja /orgaos-siafi para listar códigos válidos.
     notas = chamar(
         "notas-fiscais",
         {
-            "dataEmissaoInicial": "01/03/2026",
-            "dataEmissaoFinal": "31/03/2026",
+            "codigoOrgao": "26298",
             "pagina": 1,
         },
         "01_notas_fiscais_lista.json",
@@ -96,14 +100,12 @@ def main() -> None:
 
     if not notas:
         print(
-            "\nTentando nomes alternativos de parâmetros de data "
-            "(dataInicial/dataFinal)..."
+            "\nTentando com filtro por nome de produto (nomeProduto)..."
         )
         notas = chamar(
             "notas-fiscais",
             {
-                "dataInicial": "01/03/2026",
-                "dataFinal": "31/03/2026",
+                "nomeProduto": "soja",
                 "pagina": 1,
             },
             "01b_notas_fiscais_lista_alt.json",

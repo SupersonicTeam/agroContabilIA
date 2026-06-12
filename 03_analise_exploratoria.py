@@ -38,12 +38,21 @@ def main() -> None:
     df["descricao_item"] = df["descricao_item"].astype(str).str.strip()
     df = df[df["descricao_item"].str.len() > 0]
 
-    # NCM no nível de "posição" (4 primeiros dígitos)
+    # Normaliza o NCM. O código tem 8 dígitos, mas a API devolve
+    # `codigoNcmSh` SEM o zero à esquerda nos capítulos 01–09 (animais,
+    # carnes, ovos, laticínios — centrais ao agro): ex. "2071400" deveria
+    # ser "02071400". Mantém só códigos plausíveis (7–8 dígitos), descarta
+    # lixo (ex.: "1") e repõe o zero perdido com zfill antes de cortar a
+    # posição — senão a label sairia errada (2071 em vez de 0207).
     df["ncm"] = df["ncm"].astype(str).str.replace(r"\D", "", regex=True)
-    df = df[df["ncm"].str.len() >= 4]
+    df = df[df["ncm"].str.len().isin([7, 8])]
+    df["ncm"] = df["ncm"].str.zfill(8)
     df["ncm_posicao"] = df["ncm"].str[:4]
 
     print(f"Itens válidos após limpeza: {len(df)}")
+    if df.empty:
+        print("Nenhum item válido após a limpeza — verifique a coleta (estágio 2).")
+        return
     print(f"Quantidade de posições NCM distintas: {df['ncm_posicao'].nunique()}")
 
     # Distribuição das classes
